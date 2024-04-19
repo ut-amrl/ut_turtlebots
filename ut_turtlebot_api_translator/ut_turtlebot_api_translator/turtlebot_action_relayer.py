@@ -39,7 +39,7 @@ class ActionRelayer():
         # Handle the response asynchronously
         result_response = await self._action_client_goal_handle.get_result_async()
 
-        if GoalStatus.STATUS_SUCCEEDED:
+        if result_response.status == GoalStatus.STATUS_SUCCEEDED:
             goal_handle.succeed()
             return result_response.result
         else:

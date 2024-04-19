@@ -1,4 +1,5 @@
 import rclpy
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from rclpy.action import CancelResponse
 from action_msgs.msg import GoalStatus
 from rclpy.action import ActionServer
@@ -25,18 +26,18 @@ class DockActionTranslator():
                 goal_handle.canceled()
                 return TurtlebotDock.Result()
             
-        turtlebotRequest = TurtlebotDock.Goal()
-
+        turtlebotRequest = Dock.Goal()
+        
         self._action_client_goal_handle = await self._action_client.send_goal_async(turtlebotRequest, feedback_callback=lambda feedback: self.feedback_callback(feedback, goal_handle))
 
         # Handle the response asynchronously
         result_response = await self._action_client_goal_handle.get_result_async()
-
-        if GoalStatus.STATUS_SUCCEEDED:
+        
+        if result_response.status == GoalStatus.STATUS_SUCCEEDED:
             goal_handle.succeed()
             turtlebotDockResult = TurtlebotDock.Result()
             turtlebotDockResult.is_docked = result_response.result.is_docked
-
+  
             return turtlebotDockResult
         else:
             goal_handle.abort()
@@ -45,7 +46,7 @@ class DockActionTranslator():
 
     def feedback_callback(self, feedback_msg, goal_handle):
         turtlebotDockFeedback = TurtlebotDock.Feedback()
-        turtlebotDockFeedback.sees_dock = feedback_msg.sees_dock
+        turtlebotDockFeedback.sees_dock = feedback_msg.feedback.sees_dock
         goal_handle.publish_feedback(turtlebotDockFeedback)
 
     async def cancel_callback(self, goal_handle):
@@ -63,9 +64,10 @@ class TurtlebotDockTranslatorNode(Node):
 
     def __init__(self):
         super().__init__('turtlebot_dock_translator')
+        qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT, depth=10)
         self.dock_action_translator = DockActionTranslator(self)
-        self.dock_status_publisher = self.create_publisher(TurtlebotDockStatus, '/ut/dock_status', 10)
-        self.dock_status_subscription = self.create_subscription(DockStatus, '/dock_status', self.turtlebotFormatDockStatusCallback, 10)
+        self.dock_status_publisher = self.create_publisher(TurtlebotDockStatus, '/ut/dock_status', qos)
+        self.dock_status_subscription = self.create_subscription(DockStatus, '/dock_status', self.turtlebotFormatDockStatusCallback,  qos)
 
     def turtlebotFormatDockStatusCallback(self, msg):
         turtlebotDockStatus = TurtlebotDockStatus()
