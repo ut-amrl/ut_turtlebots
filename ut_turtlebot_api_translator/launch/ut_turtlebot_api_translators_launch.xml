@@ -1,4 +1,5 @@
 <launch>
-  <node pkg="ut_turtlebot_api_translator" exec="turtlebot_action_relayer" name="turtlebot_action_relayer"/>
+  <!-- <node pkg="ut_turtlebot_api_translator" exec="turtlebot_action_relayer" name="turtlebot_action_relayer" respawn="true" />-->
+  <include file="$(find-pkg-share ut_turtlebot_api_translator)/launch/relayer_launch.py"/>
   <node pkg="ut_turtlebot_api_translator" exec="turtlebot_amrl_dock_translator" name="turtlebot_amrl_dock_translator"/>
 </launch>

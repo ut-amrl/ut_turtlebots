@@ -25,27 +25,31 @@ class ActionRelayer():
         self._action_server = ActionServer(ros_node, msgType, "/ut/" + base_action_name, self.execute_callback, cancel_callback=self.cancel_callback, callback_group=ReentrantCallbackGroup())  # This allows concurrent handling of requests)
 
     async def execute_callback(self, goal_handle):
+        try:
+            # Send goal to CustomActionType2 server
+            while not  self._action_client.wait_for_server(timeout_sec=0.5):
+                if goal_handle.is_cancel_requested:
+                    goal_handle.canceled()
+                    return msgType.Result()
 
-        # Send goal to CustomActionType2 server
-        while not  self._action_client.wait_for_server(timeout_sec=0.5):
-            if goal_handle.is_cancel_requested:
-                goal_handle.canceled()
-                return msgType.Result()
+            self._action_client_goal_handle = await self._action_client.send_goal_async(goal_handle.request, feedback_callback=lambda feedback: self.feedback_callback(feedback, goal_handle))
 
-        self._action_client_goal_handle = await self._action_client.send_goal_async(goal_handle.request, feedback_callback=lambda feedback: self.feedback_callback(feedback, goal_handle))
+            result_response_future = self._action_client_goal_handle.get_result_async()
 
-        result_response_future = self._action_client_goal_handle.get_result_async()
+            # Handle the response asynchronously
+            result_response = await self._action_client_goal_handle.get_result_async()
 
-        # Handle the response asynchronously
-        result_response = await self._action_client_goal_handle.get_result_async()
-
-        if result_response.status == GoalStatus.STATUS_SUCCEEDED:
-            goal_handle.succeed()
-            return result_response.result
-        else:
+            if result_response.status == GoalStatus.STATUS_SUCCEEDED:
+                goal_handle.succeed()
+                return result_response.result
+            else:
+                goal_handle.abort()
+                return result_response.result
+        except Exception as e:
+            # Handle exceptions appropriately.
             goal_handle.abort()
-            return result_response.result
-
+            self.get_logger().error(f"Failed during execute_callback: {str(e)}")
+            return self.msgType.Result()  # Ensure a result type is returned even in case of failure.
 
     def feedback_callback(self, feedback_msg, goal_handle):
         goal_handle.publish_feedback(feedback_msg.feedback)
@@ -72,15 +76,15 @@ class ActionRelayerNode(Node):
 def main(args=None):
 
     base_names_to_msg_type_dicts = {
-       "audio_note_sequence": AudioNoteSequence,
-       "dock": Dock,
-       "drive_arc": DriveArc,
-       "drive_distance": DriveDistance,
-       "led_animation": LedAnimation,
-       "navigate_to_position": NavigateToPosition,
-       "rotate_angle": RotateAngle,
-       "undock": Undock,
-       "wall_follow": WallFollow
+        "audio_note_sequence": AudioNoteSequence,
+        "dock": Dock,
+        "drive_arc": DriveArc,
+        "drive_distance": DriveDistance,
+        "led_animation": LedAnimation,
+        "navigate_to_position": NavigateToPosition,
+        "rotate_angle": RotateAngle,
+        "undock": Undock,
+        "wall_follow": WallFollow
     }
 
     # # For testing
@@ -91,10 +95,26 @@ def main(args=None):
 
     rclpy.init(args=args)
     action_adapter_node = ActionRelayerNode(base_names_to_msg_type_dicts=base_names_to_msg_type_dicts)
-    rclpy.spin(action_adapter_node)
-    action_adapter_node.destroy_node()
-    rclpy.shutdown()
-
+    
+    returnVal = False
+    try:
+        rclpy.spin(action_adapter_node)
+        action_adapter_node.destroy_node()
+        rclpy.shutdown()
+    except Exception as e:
+        # Handle exceptions appropriately.
+        action_adapter_node.get_logger().error(f"Spin failed: {str(e)}")
+        print("About to return true to indicate that we should restart")
+        returnVal = True
+    finally:
+        action_adapter_node.destroy_node()
+        rclpy.shutdown()
+        print("REturning ", returnVal)
+        return returnVal
 
 if __name__ == '__main__':
-    main()
+    mainResult = main()
+    print("Main completed with: ", mainResult)
+    while (mainResult):
+        print("Restarting node")
+        mainResult = main()
