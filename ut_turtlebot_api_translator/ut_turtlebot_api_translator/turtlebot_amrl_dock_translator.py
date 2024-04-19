@@ -15,7 +15,7 @@ from amrl_msgs.msg import TurtlebotDockStatus
 class DockActionTranslator():
     def __init__(self, ros_node, base_action_name="dock"):
         self._action_client = ActionClient(ros_node, Dock, "/" + base_action_name)
-        self._action_server = ActionServer(ros_node, TurtlebotDock, "/ut/" + base_action_name, self.execute_callback, cancel_callback=self.cancel_callback, callback_group=ReentrantCallbackGroup())  # This allows concurrent handling of requests)
+        self._action_server = ActionServer(ros_node, TurtlebotDock, "/ut/turtlebot_" + base_action_name, self.execute_callback, cancel_callback=self.cancel_callback, callback_group=ReentrantCallbackGroup())  # This allows concurrent handling of requests)
 
     async def execute_callback(self, goal_handle):
 
