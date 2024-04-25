@@ -31,42 +31,6 @@
 #include "util/timer.h"
 #include "websocket/websocket.hpp"
 
-// namespace
-// {
-//   bool run_ = true;
-// //   vector<VisualizationMsg> vis_msgs_;
-// //   geometry_msgs::msg::PoseWithCovarianceStamped initial_pose_msg_;
-// //   geometry_msgs::msg::PoseStamped nav_goal_msg_;
-// //   amrl_msgs::msg::Localization2DMsg amrl_initial_pose_msg_;
-// //   amrl_msgs::msg::Localization2DMsg amrl_nav_goal_msg_;
-// //   Localization2DMsg localization_msg_;
-// //   LaserScan laser_scan_;
-
-//   bool updates_pending_ = false;
-//   RobotWebSocket *server_ = nullptr;
-// } // namespace
-
-// class WebServerNode : public rclcpp::Node
-// {
-// public:
-//     WebServerNode() : Node("ut_web_server")
-//     {
-//     }
-// };
-
-// int main(int argc, char *argv[])
-// {
-
-//     rclcpp::init(argc, argv);
-//     google::ParseCommandLineFlags(&argc, &argv, false);
-//     QCoreApplication a(argc, argv);
-//     server_ = new RobotWebSocket(10272);
-//     std::shared_ptr<WebServerNode> node = std::make_shared<WebServerNode>();
-//     rclcpp::spin(node);
-//     rclcpp::shutdown();
-//     return 0;
-// }
-
 using amrl_msgs::msg::Localization2DMsg;
 using amrl_msgs::msg::VisualizationMsg;
 using sensor_msgs::msg::LaserScan;
@@ -97,20 +61,17 @@ QCoreApplication *app_ = nullptr;
 
 class WebServerNode : public rclcpp::Node {
  public:
-  WebServerNode() : Node("web_server") {
-    rclcpp::Subscription<LaserScan>::SharedPtr laser_sub =
-        this->create_subscription<LaserScan>(
-            "/scan", 5, std::bind(&WebServerNode::LaserCallback, this, _1));
-    rclcpp::Subscription<VisualizationMsg>::SharedPtr vis_sub =
-        this->create_subscription<VisualizationMsg>(
-            "/visualization",
-            10,
-            std::bind(&WebServerNode::VisualizationCallback, this, _1));
-    rclcpp::Subscription<Localization2DMsg>::SharedPtr localization_sub =
-        this->create_subscription<Localization2DMsg>(
-            "/localization",
-            10,
-            std::bind(&WebServerNode::LocalizationCallback, this, _1));
+  WebServerNode() : Node("ut_web_server") {
+    laser_sub_ = this->create_subscription<LaserScan>(
+        "/scan", 5, std::bind(&WebServerNode::LaserCallback, this, _1));
+    vis_sub_ = this->create_subscription<VisualizationMsg>(
+        "/visualization",
+        10,
+        std::bind(&WebServerNode::VisualizationCallback, this, _1));
+    localization_sub_ = this->create_subscription<Localization2DMsg>(
+        "/localization",
+        10,
+        std::bind(&WebServerNode::LocalizationCallback, this, _1));
     init_loc_pub_ =
         this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
             "/initialpose", 10);
@@ -124,7 +85,6 @@ class WebServerNode : public rclcpp::Node {
             "/set_nav_target", 10);
   }
 
-  std::string getNodeStr() { return "web_server"; }
   void SetInitialPose(float x, float y, float theta, QString map) {
     if (FLAGS_v > 0) {
       printf("Set initial pose: %s %f,%f, %f\n",
@@ -145,8 +105,9 @@ class WebServerNode : public rclcpp::Node {
     amrl_initial_pose_msg_.pose.y = y;
     amrl_initial_pose_msg_.pose.theta = theta;
 
-    LOG(INFO) << "Publishing initial loc msg with " << amrl_initial_pose_msg_.map
-              << " " << amrl_initial_pose_msg_.pose.x << " "
+    LOG(INFO) << "Publishing initial loc msg with "
+              << amrl_initial_pose_msg_.map << " "
+              << amrl_initial_pose_msg_.pose.x << " "
               << amrl_initial_pose_msg_.pose.y << " "
               << amrl_initial_pose_msg_.pose.theta;
     amrl_init_loc_pub_->publish(amrl_initial_pose_msg_);
@@ -260,6 +221,10 @@ class WebServerNode : public rclcpp::Node {
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr nav_goal_pub_;
   rclcpp::Publisher<amrl_msgs::msg::Localization2DMsg>::SharedPtr
       amrl_nav_goal_pub_;
+
+  rclcpp::Subscription<LaserScan>::SharedPtr laser_sub_;
+  rclcpp::Subscription<VisualizationMsg>::SharedPtr vis_sub_;
+  rclcpp::Subscription<Localization2DMsg>::SharedPtr localization_sub_;
 };
 
 template <typename T>
