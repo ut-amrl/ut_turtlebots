@@ -24,7 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
             'turtlebot_amrl_dock_translator = ut_turtlebot_api_translator.turtlebot_amrl_dock_translator:main',
-            'turtlebot_action_relayer = ut_turtlebot_api_translator.turtlebot_action_relayer:main'
+            'turtlebot_action_relayer = ut_turtlebot_api_translator.turtlebot_action_relayer:main',
+            'ut_turtlebot_msg_relayer = ut_turtlebot_api_translator.turtlebot_msg_relayer:main'
         ],
     },
 )

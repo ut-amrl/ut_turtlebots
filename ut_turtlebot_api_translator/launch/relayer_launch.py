@@ -9,5 +9,12 @@ def generate_launch_description():
             executable='turtlebot_action_relayer',
             name='turtlebot_action_relayer',
             respawn=True
-            )
+            ),
+        Node(
+           package='ut_turtlebot_api_translator',
+            namespace='ut_turtlebot_msg_relayer',
+            executable='ut_turtlebot_msg_relayer',
+            name='ut_turtlebot_msg_relayer',
+            respawn=True
+            )        
     ])
