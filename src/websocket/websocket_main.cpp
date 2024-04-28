@@ -56,7 +56,6 @@ LaserScan laser_scan_;
 
 bool updates_pending_ = false;
 RobotWebSocket *server_ = nullptr;
-QCoreApplication *app_ = nullptr;
 }  // namespace
 
 class WebServerNode : public rclcpp::Node {

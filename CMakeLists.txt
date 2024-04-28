@@ -27,6 +27,9 @@ find_package(rclcpp_components REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(amrl_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(Qt5 COMPONENTS Core Widgets Gui WebSockets OpenGL REQUIRED)
 SET(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -34,6 +37,9 @@ include_directories(src/shared)
 ADD_SUBDIRECTORY(src/shared)
 include_directories(include)
 include_directories(${Qt5_INCLUDE_DIRS})
+include_directories(src)
+
+SET(libs glog gflags amrl_shared_lib lua5.1 boost_system)
 
 # add_library(websocket_lib SHARED
             # src/websocket/websocket.cpp
@@ -64,6 +70,22 @@ target_link_libraries(websocket_main
   ${Qt5_LIBRARIES})
 ament_target_dependencies(websocket_main rclcpp amrl_msgs sensor_msgs class_loader)
 
+
+add_executable(simulator
+        src/simulator/simulator.cc
+        src/simulator/vector_map.cc
+        src/simulator/simulator_main.cc)
+target_link_libraries(simulator ${libs})
+ament_target_dependencies(simulator rclcpp amrl_msgs sensor_msgs tf2 tf2_ros geometry_msgs visualization_msgs)
+
+add_executable(step_simulator
+        src/simulator/simulator.cc
+        src/simulator/vector_map.cc
+        src/simulator/step_simulator_main.cc)
+target_link_libraries(step_simulator ${libs})
+ament_target_dependencies(step_simulator rclcpp amrl_msgs sensor_msgs tf2 tf2_ros geometry_msgs visualization_msgs)
+
+
 # install(TARGETS
 #   websocket_lib
 #   ARCHIVE DESTINATION lib
@@ -72,7 +94,11 @@ ament_target_dependencies(websocket_main rclcpp amrl_msgs sensor_msgs class_load
 
 install(TARGETS
   websocket_main
+  step_simulator
+  simulator
   DESTINATION lib/${PROJECT_NAME})
+
+INSTALL(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
